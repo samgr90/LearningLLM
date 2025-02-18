@@ -1,41 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WCF Client(#Sam)</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WCF Client</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h2>WCF Client</h2>
+  <div class="container">
+    <h2>WCF Client</h2>
 
-        <label for="url">Service URL:</label>
-        <input type="text" id="url" placeholder="Enter WCF service URL">
-        <button id="getRequest">Get</button>
+    <!-- URL Input Section -->
+    <label for="url">Service URL:</label>
+    <input type="text" id="url" placeholder="Enter WCF service URL">
+    <button id="getRequest">Get</button>
+    <span id="statusMessage"></span>
 
-        <label for="soapAction">SOAP Action:</label>
-        <input type="text" id="soapAction" placeholder="Enter SOAP Action">
-        <button id="addSoapAction">Add</button>
+    <!-- SOAP Action Section -->
+    <label for="soapAction">SOAP Action:</label>
+    <input type="text" id="soapAction" placeholder="Enter SOAP Action">
+    <button id="addSoapAction">Add</button>
 
-        <div class="soap-actions">
-            <h3>SOAP Actions</h3>
-            <div id="soapActionList"></div>
-        </div>
-
-        <label for="soapBody">SOAP Body:</label>
-        <textarea id="soapBody" placeholder="Enter SOAP XML"></textarea>
-
-        <label for="attackVectors">Attack Vector List:</label>
-        <textarea id="attackVectors" placeholder="Enter attack vectors (one per line)"></textarea>
-
-        <button id="postRequest">Send POST</button>
-        <button id="attackRequest">Attack</button>
-
-        <label for="response">Response:</label>
-        <textarea id="response" readonly></textarea>
+    <div class="soap-actions">
+      <h3>SOAP Actions</h3>
+      <div id="soapActionList"></div>
     </div>
 
-    <script src="popup.js"></script>
+    <!-- SOAP Body Section -->
+    <label for="soapBody">SOAP Body:</label>
+    <textarea id="soapBody" placeholder="Enter SOAP XML"></textarea>
+
+    <!-- Attack Vectors Section -->
+    <label for="attackVectors">Attack Vector List:</label>
+    <textarea id="attackVectors" placeholder="Enter attack vectors (one per line)"></textarea>
+
+    <!-- Request Buttons -->
+    <button id="postRequest">Send POST</button>
+    <button id="attackRequest">Attack</button>
+
+    <!-- Response Output Section -->
+    <label for="response">Response:</label>
+    <textarea id="response" readonly></textarea>
+  </div>
+
+  <script src="popup.js"></script>
 </body>
 </html>
