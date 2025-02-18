@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", function() {
     const urlInput = document.getElementById("url");
     const getRequestBtn = document.getElementById("getRequest");
+    const statusMessage = document.getElementById("statusMessage");
+
     const soapActionInput = document.getElementById("soapAction");
     const addSoapActionBtn = document.getElementById("addSoapAction");
     const soapActionList = document.getElementById("soapActionList");
@@ -12,18 +14,27 @@ document.addEventListener("DOMContentLoaded", function() {
 
     let soapActions = [];
 
+    // GET request with Kerberos credentials
     getRequestBtn.addEventListener("click", function() {
-        fetch(urlInput.value)
+        fetch(urlInput.value, { credentials: "include" })
             .then(response => {
                 console.log(`GET Request to: ${urlInput.value} - Status: ${response.status}`);
-                return response.ok ? alert("Okay") : alert("Error");
+                if (response.ok) {
+                    statusMessage.textContent = "Okay";
+                    statusMessage.style.color = "green";
+                } else {
+                    statusMessage.textContent = "Error";
+                    statusMessage.style.color = "red";
+                }
             })
             .catch(error => {
                 console.error("GET Request Failed:", error);
-                alert("Error");
+                statusMessage.textContent = "Error";
+                statusMessage.style.color = "red";
             });
     });
 
+    // Add SOAP Action: add a new checkbox (unchecked by default)
     addSoapActionBtn.addEventListener("click", function() {
         const action = soapActionInput.value.trim();
         if (action && !soapActions.includes(action)) {
@@ -31,30 +42,41 @@ document.addEventListener("DOMContentLoaded", function() {
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
             checkbox.value = action;
+            // Leave checkbox unchecked so the user can decide
+            checkbox.checked = false;
+            
             const label = document.createElement("label");
+            label.style.marginRight = "10px";
             label.appendChild(checkbox);
             label.appendChild(document.createTextNode(` ${action}`));
+            
             soapActionList.appendChild(label);
+            soapActionList.appendChild(document.createElement("br"));
         }
         soapActionInput.value = "";
     });
 
+    // Send POST request with Kerberos credentials
     postRequestBtn.addEventListener("click", function() {
         sendSoapRequest(soapBodyInput.value);
     });
 
+    // Attack: send a POST request for each attack vector
     attackRequestBtn.addEventListener("click", function() {
-        const attackVectors = attackVectorsInput.value.split("\n").map(v => v.trim()).filter(Boolean);
+        const attackVectors = attackVectorsInput.value
+            .split("\n")
+            .map(v => v.trim())
+            .filter(Boolean);
         attackVectors.forEach(vector => {
             const modifiedBody = soapBodyInput.value.replace(/@AttackVector/g, vector);
             sendSoapRequest(modifiedBody);
         });
     });
 
+    // Function to send SOAP request using selected SOAP Actions, with credentials
     function sendSoapRequest(body) {
         const selectedActions = [...soapActionList.querySelectorAll("input:checked")].map(cb => cb.value);
         const headers = new Headers({ "Content-Type": "text/xml" });
-
         selectedActions.forEach(action => {
             headers.append("SOAPAction", action);
         });
@@ -62,16 +84,17 @@ document.addEventListener("DOMContentLoaded", function() {
         fetch(urlInput.value, {
             method: "POST",
             headers: headers,
-            body: body
+            body: body,
+            credentials: "include"
         })
-        .then(response => response.text())
-        .then(data => {
-            console.log(`POST Request to: ${urlInput.value} - Status: 200`);
-            responseBox.value = data;
-        })
-        .catch(error => {
-            console.error("POST Request Failed:", error);
-            responseBox.value = `Error: ${error}`;
-        });
+            .then(response => response.text())
+            .then(data => {
+                console.log(`POST Request to: ${urlInput.value} - Response: ${data}`);
+                responseBox.value = data;
+            })
+            .catch(error => {
+                console.error("POST Request Failed:", error);
+                responseBox.value = `Error: ${error}`;
+            });
     }
 });
