@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   let soapActions = [];
 
-  // GET request with Kerberos credentials
+  // GET request with Kerberos credentials and status update
   getRequestBtn.addEventListener("click", function() {
     fetch(urlInput.value, { credentials: "include" })
       .then(response => {
@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", function() {
       });
   });
 
-  // Add SOAP Action: add a new checkbox (unchecked by default)
+  // Add SOAP Action: add checkbox (unchecked by default)
   addSoapActionBtn.addEventListener("click", function() {
     const action = soapActionInput.value.trim();
     if (action && !soapActions.includes(action)) {
@@ -43,8 +43,7 @@ document.addEventListener("DOMContentLoaded", function() {
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.value = action;
-      // Leave checkbox unchecked so the user can decide
-      checkbox.checked = false;
+      checkbox.checked = false; // user decides selection
       
       const label = document.createElement("label");
       label.style.marginRight = "10px";
@@ -57,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function() {
     soapActionInput.value = "";
   });
 
-  // Send POST request (single request; response replaces previous content)
+  // Send POST request (single request replaces previous content)
   postRequestBtn.addEventListener("click", function() {
     sendSoapRequest(soapBodyInput.value, false);
   });
@@ -76,9 +75,11 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   });
 
-  // Download as Text: create a downloadable text file from the response box
+  // Download as Text: include request body and response in the downloaded file
   downloadTextBtn.addEventListener("click", function() {
-    const textToDownload = responseBox.value;
+    const requestBody = soapBodyInput.value;
+    const responseText = responseBox.value;
+    const textToDownload = "Request Body:\n" + requestBody + "\n\nResponse:\n" + responseText;
     const blob = new Blob([textToDownload], { type: "text/plain" });
     const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -93,7 +94,7 @@ document.addEventListener("DOMContentLoaded", function() {
   /**
    * Function to send a SOAP request using selected SOAP actions.
    * @param {string} body - The SOAP XML body.
-   * @param {boolean} append - If true, append the response; if false, replace the response box content.
+   * @param {boolean} append - If true, append the response; if false, replace the response.
    * @param {string} [vector] - The attack vector, if applicable.
    */
   function sendSoapRequest(body, append, vector) {
@@ -113,8 +114,8 @@ document.addEventListener("DOMContentLoaded", function() {
       .then(data => {
         console.log(`POST Request to: ${urlInput.value} - Response: ${data}`);
         if (append && vector) {
-          // Print attack vector, then response with proper spacing
-          responseBox.value += `Attack Vector: ${vector}\nResponse:\n${data}\n\n-----------------\n`;
+          // Append attack vector, request body, and response with proper spacing
+          responseBox.value += `Attack Vector: ${vector}\nRequest Body:\n${body}\nResponse:\n${data}\n\n-----------------\n`;
         } else {
           responseBox.value = data;
         }
@@ -122,11 +123,10 @@ document.addEventListener("DOMContentLoaded", function() {
       .catch(error => {
         console.error("POST Request Failed:", error);
         if (append && vector) {
-          responseBox.value += `Attack Vector: ${vector}\nError: ${error}\n\n-----------------\n`;
+          responseBox.value += `Attack Vector: ${vector}\nRequest Body:\n${body}\nError: ${error}\n\n-----------------\n`;
         } else {
           responseBox.value = `Error: ${error}`;
         }
       });
   }
 });
-<button id="downloadText">Download as Text</button>
