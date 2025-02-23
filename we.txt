@@ -1,0 +1,229 @@
+document.addEventListener("DOMContentLoaded", function() {
+  // Elements
+  const urlInput = document.getElementById("url");
+  const getRequestBtn = document.getElementById("getRequest");
+  const statusMessage = document.getElementById("statusMessage");
+  
+  const soapActionInput = document.getElementById("soapAction");
+  const addSoapActionBtn = document.getElementById("addSoapAction");
+  const autoPopulateActionsBtn = document.getElementById("autoPopulateActions");
+  const soapActionList = document.getElementById("soapActionList");
+  
+  const soapBodyInput = document.getElementById("soapBody");
+  const attackVectorsInput = document.getElementById("attackVectors");
+  
+  const postRequestBtn = document.getElementById("postRequest");
+  const attackRequestBtn = document.getElementById("attackRequest");
+  const downloadTextBtn = document.getElementById("downloadText");
+  const resetBtn = document.getElementById("resetBtn");
+  const responseBox = document.getElementById("response");
+
+  // We'll store actions in an array (for duplicate checking)
+  let soapActions = [];
+
+  // GET request with Kerberos credentials and update status message
+  getRequestBtn.addEventListener("click", function() {
+    fetch(urlInput.value, { credentials: "include" })
+      .then(response => {
+        console.log(`GET Request to: ${urlInput.value} - Status: ${response.status}`);
+        if (response.ok) {
+          statusMessage.textContent = "Okay";
+          statusMessage.style.color = "green";
+        } else {
+          statusMessage.textContent = "Error";
+          statusMessage.style.color = "red";
+        }
+      })
+      .catch(error => {
+        console.error("GET Request Failed:", error);
+        statusMessage.textContent = "Error";
+        statusMessage.style.color = "red";
+      });
+  });
+
+  // "Add" button: Add a manually entered SOAP action as a radio button
+  addSoapActionBtn.addEventListener("click", function() {
+    const action = soapActionInput.value.trim();
+    if (action && !soapActions.includes(action)) {
+      soapActions.push(action);
+      appendRadioAction(action);
+    }
+    soapActionInput.value = "";
+  });
+
+  // "Auto Populate Actions" button: Append "?wsdl" to URL, fetch, and extract SOAP actions
+  autoPopulateActionsBtn.addEventListener("click", function() {
+    const baseUrl = urlInput.value.trim();
+    if (!baseUrl) {
+      statusMessage.textContent = "Error: URL required for auto-populate";
+      statusMessage.style.color = "red";
+      return;
+    }
+    const wsdlUrl = baseUrl + "?wsdl";
+    fetch(wsdlUrl, { credentials: "include" })
+      .then(response => response.text())
+      .then(wsdlText => {
+        // Use regex to find all soapAction attributes (e.g., soapAction="http://tempuri.org/SomeMethod")
+        const regex = /soapAction\s*=\s*"([^"]+)"/g;
+        let match;
+        let actionsFound = [];
+        while ((match = regex.exec(wsdlText)) !== null) {
+          const actionValue = match[1];
+          if (!actionsFound.includes(actionValue)) {
+            actionsFound.push(actionValue);
+          }
+        }
+        // Clear existing actions and add new ones from WSDL
+        soapActions = [];
+        soapActionList.innerHTML = "";
+        if (actionsFound.length === 0) {
+          statusMessage.textContent = "No SOAP actions found in WSDL.";
+          statusMessage.style.color = "red";
+        } else {
+          actionsFound.forEach(action => {
+            soapActions.push(action);
+            appendRadioAction(action);
+          });
+          statusMessage.textContent = "SOAP actions auto-populated.";
+          statusMessage.style.color = "green";
+        }
+      })
+      .catch(error => {
+        console.error("Auto Populate Failed:", error);
+        statusMessage.textContent = "Error auto populating actions.";
+        statusMessage.style.color = "red";
+      });
+  });
+
+  // Function to append a radio button for a SOAP action
+  function appendRadioAction(action) {
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "soapActionRadio"; // same group so only one can be selected
+    radio.value = action;
+    // Do not auto-check; let user decide
+    radio.checked = false;
+
+    const label = document.createElement("label");
+    label.style.marginRight = "10px";
+    label.appendChild(radio);
+    label.appendChild(document.createTextNode(` ${action}`));
+
+    soapActionList.appendChild(label);
+    soapActionList.appendChild(document.createElement("br"));
+  }
+
+  // "Send POST" button: Validate and send a single POST request
+  postRequestBtn.addEventListener("click", function() {
+    if (!urlInput.value.trim() || !soapBodyInput.value.trim()) {
+      responseBox.value = "Error: Please enter both URL and SOAP Body.";
+      return;
+    }
+    sendSoapRequest(soapBodyInput.value, false);
+  });
+
+  // "Attack" button: Validate and send a POST request for each attack vector
+  attackRequestBtn.addEventListener("click", function() {
+    const attackVectors = attackVectorsInput.value
+      .split("\n")
+      .map(v => v.trim())
+      .filter(Boolean);
+    if (attackVectors.length === 0) {
+      responseBox.value = "Error: Please enter attack vectors (one per line).";
+      return;
+    }
+    if (!soapBodyInput.value.includes("@AttackVector")) {
+      responseBox.value = "Error: SOAP Body must contain '@AttackVector' placeholder.";
+      return;
+    }
+    // Clear previous responses
+    responseBox.value = "";
+    attackVectors.forEach(vector => {
+      const modifiedBody = soapBodyInput.value.replace(/@AttackVector/g, vector);
+      sendSoapRequest(modifiedBody, true, vector);
+    });
+  });
+
+  // "Download as Text" button: Download response (along with request body) as a text file with datetime in filename
+  downloadTextBtn.addEventListener("click", function() {
+    const requestBody = soapBodyInput.value;
+    const responseText = responseBox.value;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+    const datetimeStr = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+    const filename = `response_${datetimeStr}.txt`;
+    const textToDownload = "Request Body:\n" + requestBody + "\n\nResponse:\n" + responseText;
+    const blob = new Blob([textToDownload], { type: "text/plain" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+  });
+
+  // "Reset" button: Clear all input boxes and the SOAP actions list
+  resetBtn.addEventListener("click", function() {
+    urlInput.value = "";
+    soapActionInput.value = "";
+    soapBodyInput.value = "";
+    attackVectorsInput.value = "";
+    responseBox.value = "";
+    statusMessage.textContent = "";
+    soapActionList.innerHTML = "";
+    soapActions = [];
+  });
+
+  /**
+   * Function to send a SOAP request using the selected SOAP action.
+   * @param {string} body - The SOAP XML body.
+   * @param {boolean} append - If true, append the response; if false, replace the response.
+   * @param {string} [vector] - The attack vector, if applicable.
+   */
+  function sendSoapRequest(body, append, vector) {
+    // Get the selected radio button value
+    const selectedRadio = document.querySelector("input[name='soapActionRadio']:checked");
+    const headers = new Headers({ "Content-Type": "text/xml" });
+    if (selectedRadio) {
+      headers.append("SOAPAction", selectedRadio.value);
+    }
+    fetch(urlInput.value, {
+      method: "POST",
+      headers: headers,
+      body: body,
+      credentials: "include"
+    })
+      .then(response => response.text())
+      .then(data => {
+        console.log(`POST Request to: ${urlInput.value} - Response: ${data}`);
+        if (append && vector) {
+          responseBox.value += `Attack Vector: ${vector}\nRequest Body:\n${body}\nResponse:\n${data}\n\n-----------------\n`;
+        } else {
+          responseBox.value = data;
+        }
+      })
+      .catch(error => {
+        console.error("POST Request Failed:", error);
+        if (append && vector) {
+          responseBox.value += `Attack Vector: ${vector}\nRequest Body:\n${body}\nError: ${error}\n\n-----------------\n`;
+        } else {
+          responseBox.value = `Error: ${error}`;
+        }
+      });
+  }
+});
+
+
+<!-- After SOAP Action Input Section -->
+<button id="autoPopulateActions">Auto Populate Actions</button>
+
+<!-- At the very bottom -->
+<button id="resetBtn">Reset</button>
+<button id="downloadText">Download as Text</button>
