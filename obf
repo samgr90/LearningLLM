@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Obfuscator</title>
+    <script src="https://cdn.jsdelivr.net/npm/javascript-obfuscator/dist/index.browser.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        textarea { width: 100%; height: 150px; margin-bottom: 10px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>JavaScript Obfuscator</h2>
+    <textarea id="inputCode" placeholder="Enter your JavaScript code here..."></textarea>
+    <br>
+    <button onclick="obfuscateCode()">Obfuscate</button>
+    <br>
+    <textarea id="outputCode" placeholder="Obfuscated code will appear here..." readonly></textarea>
+    <br>
+    <button onclick="copyToClipboard()">Copy Output</button>
+    
+    <script>
+        function obfuscateCode() {
+            const inputCode = document.getElementById("inputCode").value.trim();
+            if (!inputCode) {
+                alert("Please enter JavaScript code to obfuscate.");
+                return;
+            }
+            
+            try {
+                const obfuscatedCode = JavaScriptObfuscator.obfuscate(inputCode, {
+                    compact: true,
+                    controlFlowFlattening: true,
+                    controlFlowFlatteningThreshold: 1,
+                    numbersToExpressions: true,
+                    simplify: true,
+                    stringArrayShuffle: true,
+                    splitStrings: true,
+                    stringArrayThreshold: 1,
+                    selfDefending: true,
+                    debugProtection: true,
+                    debugProtectionInterval: true,
+                    disableConsoleOutput: true
+                }).getObfuscatedCode();
+                
+                document.getElementById("outputCode").value = obfuscatedCode;
+            } catch (error) {
+                alert("Error obfuscating code: " + error.message);
+            }
+        }
+        
+        function copyToClipboard() {
+            const outputCode = document.getElementById("outputCode");
+            if (!outputCode.value) {
+                alert("No obfuscated code to copy.");
+                return;
+            }
+            outputCode.select();
+            navigator.clipboard.writeText(outputCode.value)
+                .then(() => alert("Obfuscated code copied to clipboard!"))
+                .catch(err => alert("Failed to copy: " + err));
+        }
+    </script>
+</body>
+</html>
